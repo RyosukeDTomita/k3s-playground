@@ -1,0 +1,54 @@
+# hello-cloud-nativeのPodを2レプリカで維持するDeployment。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-cloud-native
+  labels:
+    app: hello-cloud-native
+spec:
+  replicas: 2
+  selector:
+    # このラベルにマッチするPodをこのDeploymentが管理する。
+    # Service側のselectorとも揃える。
+    matchLabels:
+      app: hello-cloud-native
+  template:
+    metadata:
+      labels:
+        app: hello-cloud-native
+    spec:
+      containers:
+        - name: hello-cloud-native
+          # k3sのcontainerdに`ctr images import`したローカルイメージを使う。
+          # containerd内部の正規化された完全修飾名で指定する。
+          image: docker.io/library/hello-cloud-native:latest
+          # レジストリからpullせず、import済みイメージだけを使う。
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PORT
+              value: "8080"
+          # 3MBの静的バイナリ1個なのでリソースはごく小さくてよい。
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 64Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+          securityContext:
+            # イメージ自体もUser=65534(nobody)で作ってあるが、二重に強制する。
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

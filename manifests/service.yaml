@@ -1,0 +1,18 @@
+# hello-cloud-nativeのPod群への入口となるService。
+# NodePortなのでノードの30080番からアクセスできる。
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-cloud-native
+  labels:
+    app: hello-cloud-native
+spec:
+  type: NodePort
+  # このselectorにマッチするPodへ振り分ける(Deployment側のラベルと揃える)。
+  selector:
+    app: hello-cloud-native
+  ports:
+    - name: http
+      port: 80 # ClusterIPで受けるポート
+      targetPort: 8080 # コンテナ側のポート
+      nodePort: 30080 # ノード(ホスト)側のポート
