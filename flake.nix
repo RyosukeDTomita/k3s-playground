@@ -56,6 +56,11 @@
         packages.image = pkgs.dockerTools.buildLayeredImage {
           name = "hello-cloud-native";
           tag = "latest";
+          # イメージの作成日時。デフォルトは Unix epoch(1970-01-01)で
+          # `docker images` に "56 years ago" と出るため、ビルド時刻を使う。
+          # 注意: "now" にするとビルドごとに出力が変わり再現性は失われる
+          #(hash 固定を優先するなら "2026-07-16T00:00:00Z" のような固定値にする)。
+          created = "now";
           config = {
             Cmd = [ "${helloCloudNativeStatic}/bin/hello-cloud-native" ];
             Env = [ "PORT=8080" ];
