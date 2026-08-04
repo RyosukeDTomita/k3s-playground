@@ -32,12 +32,23 @@ nix fmt
 imageサイズを小さくするため、musl完全静的バイナリをGHCで作成し、distrolessコンテナに配置している。
 
 ```shell
+# musl完全静的バイナリ単体(result/bin/hello-cloud-nativeができる)
+nix build
+
 # distrolessコンテナイメージ(tar.gz)
 # `nix build`が作るresult(バイナリのディレクトリ)と出力リンクが衝突しないよう-oで別名にする
 nix build .#image -o result-image
 ```
 
-初回の`nix build .#static`はmusl版GHCのソースビルドが走り数時間かかる。同じnixpkgs pinを使っている[acac-cli](https://github.com:RyosukeDTomita/acac-cli)のcachixキャッシュを設定すると大幅に短縮できる:
+`nix build`(=`nix build .#default`)はイメージに載せるのと同じ静的バイナリだけを出力する。コンテナ化せずローカルで動かしたいときに使う:
+
+```shell
+nix build
+./result/bin/hello-cloud-native &
+curl http://localhost:8080/
+```
+
+初回のビルドはmusl版GHCのソースビルドが走り数時間かかる。同じnixpkgs pinを使っている[acac-cli](https://github.com:RyosukeDTomita/acac-cli)のcachixキャッシュを設定すると大幅に短縮できる:
 
 ```shell
 sudo sh -c 'printf "extra-substituters = https://acac.cachix.org\nextra-trusted-public-keys = acac.cachix.org-1:7lo6nw1q5Gp7yrgFU1GKjWCyxtPX0gcqUjxR21FDL10=\n" >> /etc/nix/nix.conf && systemctl restart nix-daemon'

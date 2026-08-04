@@ -46,7 +46,6 @@ spec:
               path: /
               port: 8080
           securityContext:
-            # イメージ自体もUser=65534(nobody)で作ってあるが、二重に強制する。
             runAsNonRoot: true
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
