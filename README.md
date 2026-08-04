@@ -85,14 +85,6 @@ hello-cloud-native-777f8bf664-646g7   1/1     Running   0          15h
 hello-cloud-native-777f8bf664-6pn85   1/1     Running   0          15h
 ```
 
-
-数回叩くとpodの値が変わり、Serviceが2レプリカに振り分けているのが見える
-
-```shell
-# -w '\n'でリクエストごとに改行を入れる
-for i in $(seq 5); do curl -s -w '\n' http://localhost:30080; done
-```
-
 ### (アプリ修正時の更新)
 
 再ビルド+再import後にPodを作り直させる(タグが`latest`のままなのでrestartしないと新イメージにならない):
@@ -101,6 +93,39 @@ for i in $(seq 5); do curl -s -w '\n' http://localhost:30080; done
 nix build .#image -o result-image
 zcat result-image | sudo k3s ctr images import -
 sudo k3s kubectl rollout restart deployment/hello-cloud-native
+```
+
+---
+
+## デモ
+
+### ロードバランシング
+
+数回叩くとpodの値が変わり、Serviceが2レプリカに振り分けているのが見える
+
+```shell
+# -w '\n'でリクエストごとに改行を入れる
+for i in $(seq 5); do curl -s -w '\n' http://localhost:30080; done
+```
+
+### podが落ちると自動起動される
+
+```shell
+# terminal 1でpodの状態をモニターする
+sudo k3s kubectl get pods -l app=hello-cloud-native -w
+NAME                                  READY   STATUS    RESTARTS   AGE
+hello-cloud-native-777f8bf664-646g7   1/1     Running   0          15h
+hello-cloud-native-777f8bf664-6pn85   1/1     Running   0          15h
+```
+
+```shell
+# 削除
+sudo k3s kubectl delete pod <pod名> # hello-cloud-native-777f8bf664-646g7を削除
+
+# チェック
+sudo k3s kubectl get pods -l app=hello-cloud-native
+hello-cloud-native-777f8bf664-6pn85   1/1     Running   0          15h
+hello-cloud-native-777f8bf664-q4mfs   1/1     Running   0          116s -> コンテナが新しい状態になっている。
 ```
 
 ---
