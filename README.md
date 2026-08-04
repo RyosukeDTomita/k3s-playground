@@ -77,7 +77,12 @@ sudo k3s crictl images | grep hello-cloud-native
 
 # 3. マニフェストを適用
 sudo k3s kubectl apply -f manifests/
+
+# 4. 確認
 sudo k3s kubectl get pods -l app=hello-cloud-native
+NAME                                  READY   STATUS    RESTARTS   AGE
+hello-cloud-native-777f8bf664-646g7   1/1     Running   0          15h
+hello-cloud-native-777f8bf664-6pn85   1/1     Running   0          15h
 ```
 
 
