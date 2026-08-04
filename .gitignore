@@ -2,3 +2,4 @@ result
 result-*
 dist-newstyle/
 .direnv/
+nix-static-bin
