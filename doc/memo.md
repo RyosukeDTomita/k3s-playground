@@ -19,7 +19,7 @@
 
 ### 図1: どう動くか(概要)
 
-公式図と同じ構成。kube-apiserverが中心(ハブ)で、他のコンポーネントは互いに直接喋らず必ずapiserverを経由する。
+[公式図](https://kubernetes.io/docs/concepts/overview/components/)と同じ構成。kube-apiserverが中心(ハブ)で、他のコンポーネントは互いに直接喋らず必ずapiserverを経由する。
 
 ```mermaid
 ---
@@ -193,19 +193,24 @@ flowchart TB
 
 オブジェクトの軸
 
-- デプロイメント: Podのデプロイを管理。マニフェストファイルに`kind: Deployment`に対応する?
+- デプロイメント: Podのデプロイを管理。マニフェストの`kind: Deployment`に対応する
   - レプリカセット: Podの数を管理する
     - Pod
-- サービス: Podをまとめて管理する。ロードバランサー的にPodを管理する。サービス単位でクラスターIPがふられる
+  - 親子関係もetcdのレコードとして実在する。Podの`metadata.ownerReferences`にReplicaSetが、ReplicaSetの同フィールドにDeploymentが入っている。Deploymentを消すとReplicaSetとPodがカスケード削除されるのはこのため
+- サービス: ロードバランサー的にPodへ通信を振り分ける。サービス単位でクラスターIPがふられる
+  - Podを所有はしていない。`spec.selector`のラベル一致で緩く結びつくだけで、Deployment配下のようなownerReferencesは張られない(Serviceを消してもPodは残る)
+  - EndpointSlice: セレクタに一致した現在のPod IPのリストを持つ別オブジェクト。実際の宛先はService → EndpointSlice → Podとたどる
+  - 実体はkube-proxyが各ノードに書くiptables/IPVSルール。「Serviceというプロセス」はどこにもおらず、クラスターIPはどのNICにもついていない仮想IP。図1の⑤がこの翻訳工程
 
 ---
 
 ## マニフェスト
 
-- DeploymentとServiceを粗結合にわけて書くようにできている(1つのファイルに書いても良い)
+- DeploymentとServiceを疎結合にわけて書くようにできている(1つのファイルに書いても良い)
   - Podはアプリの更新時に再ビルドするのでDeploymentのライフサイクルは短い
   - Serviceは割と長生きする
   - Serviceのversionセレクタを切り替えるだけでBlue/Greenデプロイできる
+  - これが成立するのはServiceがPodを所有せずラベルで選んでいるだけだから。セレクタを書き換えるとEndpointSliceが張り替わり、向き先が切り替わる
 
 ---
 

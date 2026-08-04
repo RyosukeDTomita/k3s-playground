@@ -12,7 +12,8 @@ spec:
   selector:
     app: hello-cloud-native
   ports:
+  # ブラウザ ->  localhost:30080 -> ClusterIP:80 -> Pod/コンテナ:8080
     - name: http
       port: 80 # ClusterIPで受けるポート
       targetPort: 8080 # コンテナ側のポート
-      nodePort: 30080 # ノード(ホスト)側のポート
+      nodePort: 30080 # ノード(ホスト)側のポート ここに向かってアクセスする。

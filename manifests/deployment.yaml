@@ -10,6 +10,7 @@ spec:
   selector:
     # このラベルにマッチするPodをこのDeploymentが管理する。
     # Service側のselectorとも揃える。
+    # spec.template.metadata.labels.appともあわせる
     matchLabels:
       app: hello-cloud-native
   template:
