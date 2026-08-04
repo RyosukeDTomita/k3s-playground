@@ -43,6 +43,26 @@ nix build .#image -o result-image
 sudo sh -c 'printf "extra-substituters = https://acac.cachix.org\nextra-trusted-public-keys = acac.cachix.org-1:7lo6nw1q5Gp7yrgFU1GKjWCyxtPX0gcqUjxR21FDL10=\n" >> /etc/nix/nix.conf && systemctl restart nix-daemon'
 ```
 
+#### (Nixを使わないビルドとのサイズ比較)
+
+比較用にPodmanだけで同じアプリのイメージを作れる。`Containerfile.musl-static`が
+musl静的 + `scratch`、`Containerfile.glibc-dynamic`がglibc動的 + debian-slim。
+
+```shell
+podman build -f Containerfile.musl-static -t hello-cloud-native:musl-static .
+podman build -f Containerfile.glibc-dynamic -t hello-cloud-native:glibc-dynamic .
+```
+
+| 構成 | イメージサイズ |
+|---|---|
+| Nix `dockerTools.buildLayeredImage` | 3.25MB |
+| Podman musl静的 + `scratch` | 28.9MB |
+| Podman glibc動的 + debian-slim | 91.6MB |
+
+musl静的リンク自体はNix固有ではなくPodmanでも再現できる。Nix版がさらに8.9倍
+小さいのは、nixpkgsがGHC本体とboot libraryを`split_sections`付きでビルドしていて
+未使用コードを落とせるため。詳細は[doc/podman-build.md](doc/podman-build.md)。
+
 ### (コンテナイメージの動作確認)
 
 k3sに載せる前に軽く動作確認するためにpodmanを使う

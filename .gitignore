@@ -2,3 +2,5 @@ result
 result-*
 dist-newstyle/
 .direnv/
+# サイズ比較のためpodman cpでイメージから取り出したバイナリ
+*-bin

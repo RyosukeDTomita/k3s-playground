@@ -1,0 +1,39 @@
+# glibc動的リンク版。musl静的リンク版(Containerfile.musl-static)との
+# サイズ比較用のベースライン。Nixを使わない場合によくある「素朴な」構成に近いが、
+# 多段ビルド+非rootという構造自体はmusl静的版と揃えてある。
+
+FROM debian:bookworm-slim AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl gcc g++ make libgmp-dev libffi-dev zlib1g-dev ca-certificates xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
+    BOOTSTRAP_HASKELL_GHC_VERSION=9.12.2 \
+    BOOTSTRAP_HASKELL_CABAL_VERSION=latest \
+    BOOTSTRAP_HASKELL_INSTALL_NO_STACK=1 \
+    GHCUP_INSTALL_BASE_PREFIX=/opt \
+    PATH=/opt/.ghcup/bin:$PATH
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+
+WORKDIR /src
+COPY hello-cloud-native.cabal ./
+COPY app ./app
+
+# 静的リンクオプションなし = 通常の動的リンクビルド。
+# -split-sections/stripはmusl静的版と揃えてあり、比較の差分が
+# 「musl静的 + scratch」対「glibc動的 + debian-slim」だけになるようにしている。
+RUN cabal update && \
+    cabal build --ghc-options='-split-sections' exe:hello-cloud-native && \
+    cp "$(cabal list-bin exe:hello-cloud-native)" /tmp/hello-cloud-native && \
+    strip /tmp/hello-cloud-native
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends libgmp10 \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=builder /tmp/hello-cloud-native /usr/local/bin/hello-cloud-native
+ENV PORT=8080
+EXPOSE 8080/tcp
+USER 65534:65534
+ENTRYPOINT ["/usr/local/bin/hello-cloud-native"]

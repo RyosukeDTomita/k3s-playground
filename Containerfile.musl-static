@@ -1,0 +1,40 @@
+# musl静的リンク版。Nixのpkgsstatic + dockerTools.buildLayeredImageと同じ発想:
+# alpine(musl libc)でビルドし、最終イメージはscratch(バイナリ1個だけ)にする。
+
+FROM alpine:3.20 AS builder
+
+RUN apk add --no-cache \
+    curl gcc g++ musl-dev make perl xz tar \
+    gmp-dev libffi-dev ncurses-static ncurses-libs zlib-dev zlib-static
+
+ENV BOOTSTRAP_HASKELL_NONINTERACTIVE=1 \
+    BOOTSTRAP_HASKELL_GHC_VERSION=9.12.2 \
+    BOOTSTRAP_HASKELL_CABAL_VERSION=latest \
+    BOOTSTRAP_HASKELL_INSTALL_NO_STACK=1 \
+    GHCUP_INSTALL_BASE_PREFIX=/opt \
+    PATH=/opt/.ghcup/bin:$PATH
+
+RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+
+WORKDIR /src
+COPY hello-cloud-native.cabal ./
+COPY app ./app
+
+# -optl-staticでmuslを含め完全静的リンクする。
+# -split-sectionsは関数ごとにELFセクションを分け、--gc-sectionsで未使用コードを
+# 落とすためのもの。ただし本ビルドでは効果が64バイトしかない。ghcupが入れる公式
+# alpine bindistのboot library(base等)がsplit-sectionsなしでビルドされており、
+# バイナリの大半を占めるその部分を削れないため(詳細はdoc/podman-build.md)。
+# 意図の記録として残してある。stripは45.7MB->28.9MBと効く。
+RUN cabal update && \
+    cabal build --ghc-options='-optl-static -optl-pthread -split-sections' exe:hello-cloud-native && \
+    cp "$(cabal list-bin exe:hello-cloud-native)" /tmp/hello-cloud-native && \
+    strip /tmp/hello-cloud-native
+
+FROM scratch
+COPY --from=builder /tmp/hello-cloud-native /hello-cloud-native
+ENV PORT=8080
+EXPOSE 8080/tcp
+# distroless流に非rootで実行する(scratchに/etc/passwdはないので数値UID/GID指定)
+USER 65534:65534
+ENTRYPOINT ["/hello-cloud-native"]
