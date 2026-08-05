@@ -17,6 +17,22 @@ sudo k3s kubectl get node
 
 `app/Main.hs`: wai/warpで書いたHTTPサーバー。どのパスにも`{"message":"Hello, Cloud Native!","pod":"<Pod名>"}`をJSONで返す。`pod`は`HOSTNAME`環境変数(k8sではPod名が入る)から取るので、どのレプリカが応答したか確認できる。ポートは`PORT`環境変数で指定(デフォルト8080)。
 
+### Go App(このブランチのみ)
+
+`go/main.go`: Haskell版と同じ仕様のGo移植(net/http+encoding/json、標準ライブラリのみ)。イメージサイズ比較用。
+
+- `nix build .#go`: 静的バイナリ。`CGO_ENABLED=0`によりGoランタイムがlibcを介さず直接システムコールを発行するため、muslもglibcも不要な完全静的バイナリになる(Haskellと違いmusl版を別に作る必要がない)。
+- `nix build .#image-go -o result-image-go`: Go版コンテナイメージ(tar.gz)。構成はHaskell版と同じ(ベースイメージなし・静的バイナリ1個・nobody実行)。
+
+nixpkgsのGoはstdlibがtzdata/iana-etc/mailcapのstoreパスを参照するようパッチされているため、そのままだとイメージに約2.7MiB余計に入る。このアプリでは不要なので`remove-references-to`で参照を除去している。
+
+イメージサイズ比較(x86_64-linux, nixos-25.05):
+
+| | バイナリ | イメージ(展開後) | イメージ(tar.gz) |
+|---|---|---|---|
+| Haskell(musl静的) | 3.1MiB | 3.1MiB | 1.1MiB |
+| Go(CGO_ENABLED=0, -s -w) | 5.4MiB | 5.5MiB | 2.3MiB |
+
 ---
 
 ## For Developer
@@ -57,7 +73,6 @@ curl http://localhost:8080/
 
 podmanはロード時にイメージ名を`docker.io/library/hello-cloud-native:latest`のような完全修飾名に正規化することがある。短縮名で見つからないときは`podman images`で実際の名前を確認する。
 
-
 ### k3sへのデプロイ
 
 `manifests/`のマニフェストでデプロイする。
@@ -79,7 +94,6 @@ sudo k3s crictl images | grep hello-cloud-native
 sudo k3s kubectl apply -f manifests/
 sudo k3s kubectl get pods -l app=hello-cloud-native
 ```
-
 
 数回叩くとpodの値が変わり、Serviceが2レプリカに振り分けているのが見える
 
