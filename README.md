@@ -68,7 +68,6 @@ curl http://localhost:8080/
 
 podmanはロード時にイメージ名を`docker.io/library/hello-cloud-native:latest`のような完全修飾名に正規化することがある。短縮名で見つからないときは`podman images`で実際の名前を確認する。
 
-
 ### k3sへのデプロイ
 
 `manifests/`のマニフェストでデプロイする。

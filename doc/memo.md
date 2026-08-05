@@ -104,12 +104,12 @@ flowchart LR
 Deployment適用時の流れ:
 
 1. `kubectl apply`でマニフェストをkube-apiserverに投げる
-2. kube-apiserverが「あるべき状態」をetcdに保存する(この時点ではまだ何も動いていない)
-3. kube-schedulerが配置先ノードの決まっていないPodを見つけ、空きリソースを見てノードを決める
-4. 対象ノードのkubeletがapiserver経由で自分の担当Podを受け取り、コンテナランタイムでコンテナを起動する
-5. kube-proxyがService宛の通信をPodに流すためのルールをノードに設定する
-6. kubeletが実際の状態をapiserverに報告し続ける
-7. kube-controller-managerが「あるべき状態」と「実際の状態」を比べ、差があれば埋める(Podが落ちたら作り直す、など)
+1. kube-apiserverが「あるべき状態」をetcdに保存する(この時点ではまだ何も動いていない)
+1. kube-schedulerが配置先ノードの決まっていないPodを見つけ、空きリソースを見てノードを決める
+1. 対象ノードのkubeletがapiserver経由で自分の担当Podを受け取り、コンテナランタイムでコンテナを起動する
+1. kube-proxyがService宛の通信をPodに流すためのルールをノードに設定する
+1. kubeletが実際の状態をapiserverに報告し続ける
+1. kube-controller-managerが「あるべき状態」と「実際の状態」を比べ、差があれば埋める(Podが落ちたら作り直す、など)
 
 ---
 
